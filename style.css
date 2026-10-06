@@ -16,3 +16,4 @@ label{font-size:13px;font-weight:600;color:var(--mute)}
 #drop{border:2px dashed var(--line);border-radius:14px;padding:34px;text-align:center;color:var(--mute);font-family:system-ui}
 #drop.over{border-color:var(--acc)}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .msg{font-size:14px;color:var(--mute)}.err{color:var(--bad)}
+[hidden]{display:none!important}
