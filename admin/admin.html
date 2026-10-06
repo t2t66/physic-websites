@@ -1,8 +1,8 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Admin</title><link rel="stylesheet" href="/style.css"></head><body>
-<header><div class="wrap"><h1><a href="/">Physics Lessons</a> · Admin</h1><button class="alt" id="out" hidden>Log out</button></div></header>
+<title>Admin · រូបវិទ្យាថ្នាក់ទី១២ ដូ ចំណាន</title><link rel="stylesheet" href="/style.css"></head><body>
+<header><div class="wrap"><h1><a href="/">រូបវិទ្យាថ្នាក់ទី១២ ដូ ចំណាន</a> · Admin</h1><button class="alt" id="out" hidden>Log out</button></div></header>
 <main class="wrap">
-<section id="login" hidden><article style="max-width:380px;margin:40px auto"><h2>Log in</h2><label>Email</label><input id="em" type="email"><label>Password</label><input id="pw" type="password"><button id="go">Log in</button><p class="msg err" id="lm"></p></article></section>
+<section id="login" hidden><article style="max-width:380px;margin:40px auto"><h2>Log in</h2><label>Username or email</label><input id="em" type="text" autocapitalize="none" autocomplete="username"><label>Password</label><input id="pw" type="password"><button id="go">Log in</button><p class="msg err" id="lm"></p></article></section>
 <section id="panel" hidden>
 <article><h2 id="ft">Add a lesson</h2>
 <div id="drop">Drag &amp; drop a PowerPoint (.pptx) or PDF here<br><br><button class="alt" id="pick">or choose a file</button><input type="file" id="file" accept=".pptx,.ppt,.pdf" hidden></div>
@@ -19,7 +19,8 @@ let cur={},all=[];
 const say=(m,e)=>{$('#fm').textContent=m;$('#fm').className='msg'+(e?' err':'')};
 async function show(){const {data}=await sb.auth.getSession();const on=!!data.session;
   $('#login').hidden=on;$('#panel').hidden=!on;$('#out').hidden=!on;if(on)load()}
-$('#go').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});
+const toEmail=v=>{v=v.trim().toLowerCase();return v.includes('@')?v:v+'@lessons.example.com'};
+$('#go').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:toEmail($('#em').value),password:$('#pw').value});
   if(error)$('#lm').textContent=error.message;else show()};
 $('#out').onclick=async()=>{await sb.auth.signOut();show()};
 async function load(){const {data}=await sb.from('lessons').select('*').order('created_at',{ascending:false});all=data||[];
