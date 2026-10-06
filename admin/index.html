@@ -1,0 +1,45 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin</title><link rel="stylesheet" href="/style.css"></head><body>
+<header><div class="wrap"><h1><a href="/">Physics Lessons</a> · Admin</h1><button class="alt" id="out" hidden>Log out</button></div></header>
+<main class="wrap">
+<section id="login" hidden><article style="max-width:380px;margin:40px auto"><h2>Log in</h2><label>Email</label><input id="em" type="email"><label>Password</label><input id="pw" type="password"><button id="go">Log in</button><p class="msg err" id="lm"></p></article></section>
+<section id="panel" hidden>
+<article><h2 id="ft">Add a lesson</h2>
+<div id="drop">Drag &amp; drop a PowerPoint (.pptx) or PDF here<br><br><button class="alt" id="pick">or choose a file</button><input type="file" id="file" accept=".pptx,.ppt,.pdf" hidden></div>
+<p class="msg" id="fm"></p>
+<label>Title</label><input id="t"><label>Unit / topic</label><input id="u" placeholder="e.g. Mechanics"><label>Short description</label><input id="d"><label>Notes (optional)</label><textarea id="n" rows="4"></textarea>
+<div class="row"><span><button id="save">Save lesson</button> <button class="alt" id="clear">Clear</button></span></div></article>
+<h2>All lessons</h2><div id="list"></div></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/config.js"></script>
+<script>
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY),$=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let cur={},all=[];
+const say=(m,e)=>{$('#fm').textContent=m;$('#fm').className='msg'+(e?' err':'')};
+async function show(){const {data}=await sb.auth.getSession();const on=!!data.session;
+  $('#login').hidden=on;$('#panel').hidden=!on;$('#out').hidden=!on;if(on)load()}
+$('#go').onclick=async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#em').value,password:$('#pw').value});
+  if(error)$('#lm').textContent=error.message;else show()};
+$('#out').onclick=async()=>{await sb.auth.signOut();show()};
+async function load(){const {data}=await sb.from('lessons').select('*').order('created_at',{ascending:false});all=data||[];
+  $('#list').innerHTML=all.map(l=>`<article style="margin:12px 0;padding:16px"><div class="row"><div><b>${esc(l.title)}</b><div class="sub">${esc(l.unit||'General')} · ${esc(l.file_name||'no file')}</div></div><div><button class="alt" onclick="edit('${l.id}')">Edit</button> <button class="del" onclick="del('${l.id}')">Delete</button></div></div></article>`).join('')||'<p class="msg">None yet.</p>'}
+function fill(){$('#t').value=cur.title||'';$('#u').value=cur.unit||'';$('#d').value=cur.description||'';$('#n').value=cur.notes||'';$('#ft').textContent=cur.id?'Edit lesson':'Add a lesson'}
+function edit(id){cur={...all.find(l=>l.id===id)};fill();say(cur.file_name?'Current file: '+cur.file_name+' (drop a new one to replace)':'');scrollTo(0,0)}
+$('#clear').onclick=()=>{cur={};fill();say('')};
+async function up(f){if(!f)return;say('Uploading '+f.name+'…');
+  const path=Date.now()+'-'+f.name.replace(/[^\w.\-]+/g,'_');
+  const {error}=await sb.storage.from('lessons').upload(path,f);
+  if(error)return say(error.message,1);
+  if(cur.file_path&&cur.id)await sb.storage.from('lessons').remove([cur.file_path]);
+  cur.file_path=path;cur.file_name=f.name;if(!$('#t').value)$('#t').value=f.name.replace(/\.[^.]+$/,'');say('Uploaded. Fill in the details and press Save.')}
+const dz=$('#drop');['dragover','dragenter'].forEach(e=>dz.addEventListener(e,x=>{x.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(e=>dz.addEventListener(e,x=>{x.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',x=>up(x.dataTransfer.files[0]));$('#pick').onclick=()=>$('#file').click();$('#file').onchange=x=>up(x.target.files[0]);
+$('#save').onclick=async()=>{const row={title:$('#t').value||'Untitled',unit:$('#u').value,description:$('#d').value,notes:$('#n').value,file_path:cur.file_path||null,file_name:cur.file_name||null};
+  const {error}=cur.id?await sb.from('lessons').update(row).eq('id',cur.id):await sb.from('lessons').insert(row);
+  if(error)return say(error.message,1);cur={};fill();say('Saved!');load()};
+async function del(id){if(!confirm('Delete this lesson?'))return;const l=all.find(x=>x.id===id);
+  if(l.file_path)await sb.storage.from('lessons').remove([l.file_path]);await sb.from('lessons').delete().eq('id',id);load()}
+show();
+</script></body></html>
